@@ -1,0 +1,604 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="utf-8">
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8">
+    <title>타워 디펜스 재활 게임 | SMILE FIT</title>
+    <link rel="shortcut icon" href="{{ url_for('static', filename='unity_game_files/TemplateData/favicon.ico') }}">
+    <link rel="stylesheet" href="{{ url_for('static', filename='unity_game_files/TemplateData/style.css') }}">
+    <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@500&family=SUIT:wght@400;600&display=swap" rel="stylesheet">
+    <script defer src="https://cdn.jsdelivr.net/npm/face-api.js@0.22.2/dist/face-api.min.js"></script>
+    <style>
+        /* ... (기존 CSS - 변경 없음) ... */
+        body { margin: 0; overflow: hidden; font-family: 'SUIT', sans-serif; text-align: center; background: radial-gradient(ellipse at center, #0f2027, #203a43, #2c5364); color: #00ffe1;}
+        #unity-container{
+            width: 960px;
+            height: 600px;
+            margin: auto;
+        }
+        #facial-recognition-modal {
+            display: none;
+            position: fixed;
+            left: 0; top: 0; width: 100%; height: 100%;
+            background-color: rgba(0,0,0,0.85);
+            z-index: 1000;
+            color: #00ffe1;
+            align-items: center;
+            justify-content: center;
+            flex-direction: column;
+            padding: 20px;
+            box-sizing: border-box;
+        }
+        #facial-recognition-modal .modal-container {
+            display: flex;
+            justify-content: center;
+            align-items: flex-start;
+            gap: 20px;
+            margin-top: 20px;
+            flex-wrap: wrap;
+        }
+        #facial-recognition-modal img,
+        #facial-recognition-modal video,
+        #facial-recognition-modal canvas#emotion-guideCanvas {
+            width: 300px;
+            height: 225px;
+            border: 2px solid #00ffe1;
+            box-shadow: 0 0 10px #00ffe1;
+            background-color: #000;
+        }
+        #facial-recognition-modal video#emotion-video {
+            transform: scaleX(-1);
+        }
+        #facial-recognition-modal canvas#emotion-guideCanvas {
+            position: absolute;
+            top:0;
+            left:0;
+            pointer-events: none;
+        }
+        #facial-recognition-modal .emotion-display-text {
+            font-size: 18px;
+            margin-top: 10px;
+            text-shadow: 0 0 5px #00ffe1;
+        }
+        #facial-recognition-modal button {
+            margin-top: 15px;
+            padding: 10px 20px;
+            font-size: 16px;
+            border: 2px solid #00ffe1;
+            background: transparent;
+            color: #00ffe1;
+            border-radius: 10px;
+            cursor: pointer;
+            box-shadow: 0 0 10px #00ffe1;
+            transition: all 0.3s ease;
+        }
+        #facial-recognition-modal button:hover {
+            background-color: #00ffe133;
+            box-shadow: 0 0 15px #00ffe1;
+        }
+        #facial-recognition-modal h3 {
+            font-family: 'Orbitron', sans-serif;
+            font-size: 20px;
+            margin-bottom: 5px;
+        }
+        #facial-recognition-modal p {
+            margin-top: 0;
+            font-size: 16px;
+            color: #fff;
+        }
+    </style>
+</head>
+<body>
+    <div id="unity-container" class="unity-desktop">
+        <canvas id="unity-canvas" width=960 height=600 tabindex="-1"></canvas>
+        <div id="unity-loading-bar">
+            <div id="unity-logo"></div>
+            <div id="unity-progress-bar-empty">
+                <div id="unity-progress-bar-full"></div>
+            </div>
+        </div>
+        <div id="unity-warning"> </div>
+        <div id="unity-footer">
+            <div id="unity-logo-title-footer"></div>
+            <div id="unity-fullscreen-button"></div>
+            <div id="unity-build-title">towerdefense</div>
+        </div>
+    </div>
+
+    <div id="facial-recognition-modal">
+        <div id="emotion-mode-ui" style="display: none; text-align: center;">
+            <h3>감정 표현하기</h3>
+            <p>제시된 감정을 표정으로 표현해보세요!</p>
+            <div class="modal-container">
+                <div>
+                    <img id="emotion-referenceImg" src="" alt="기준 감정 이미지">
+                    <div id="emotion-refEmotionDisplay" class="emotion-display-text">기준 감정: -</div>
+                </div>
+                <div style="position: relative;">
+                    <video id="emotion-video" autoplay muted playsinline></video>
+                    <canvas id="emotion-guideCanvas" width="300" height="225"></canvas>
+                    <div id="emotion-userEmotionDisplay" class="emotion-display-text">당신 감정: -</div>
+                </div>
+            </div>
+            <button id="emotion-captureBtn">📸 표정 제출하고 점수 받기</button>
+            <div id="emotion-scoreDisplay" class="emotion-display-text">점수: -</div>
+        </div>
+        <button onclick="closeFacialModal()" style="position:absolute; top:20px; right:20px; background-color: #555;">X 닫기</button>
+    </div>
+
+    <script>
+        // --- Unity Loader Script (기존과 동일) ---
+        var canvas_unity_element = document.querySelector("#unity-canvas"); // 변수명 변경 (var canvas -> var canvas_unity_element)
+        function unityShowBanner(msg, type) {
+            var warningBanner = document.querySelector("#unity-warning");
+            function updateBannerVisibility() {
+                warningBanner.style.display = warningBanner.children.length ? 'block' : 'none';
+            }
+            var div = document.createElement('div');
+            div.innerHTML = msg;
+            warningBanner.appendChild(div);
+            if (type == 'error') div.style = 'background: red; padding: 10px;';
+            else {
+                if (type == 'warning') div.style = 'background: yellow; padding: 10px;';
+                setTimeout(function() {
+                    warningBanner.removeChild(div);
+                    updateBannerVisibility();
+                }, 5000);
+            }
+            updateBannerVisibility();
+        }
+
+        var loaderUrl = "{{ url_for('static', filename='unity_game_files/Build/towerdefense.loader.js') }}";
+        var config = {
+            arguments: [],
+            dataUrl: "{{ url_for('static', filename='unity_game_files/Build/towerdefense.data') }}",
+            frameworkUrl: "{{ url_for('static', filename='unity_game_files/Build/towerdefense.framework.js') }}",
+            codeUrl: "{{ url_for('static', filename='unity_game_files/Build/towerdefense.wasm') }}",
+            productName: "towerdefense",
+            showBanner: unityShowBanner,
+            devicePixelRatio: 1,
+        };
+
+        if (/iPhone|iPad|iPod|Android/i.test(navigator.userAgent)) {
+            var meta = document.createElement('meta');
+            meta.name = 'viewport';
+            meta.content = 'width=device-width, height=device-height, initial-scale=1.0, user-scalable=no, shrink-to-fit=yes';
+            document.getElementsByTagName('head')[0].appendChild(meta);
+            document.querySelector("#unity-container").className = "unity-mobile";
+            if (canvas_unity_element) canvas_unity_element.className = "unity-mobile"; // 변수명 사용
+        }
+        document.querySelector("#unity-loading-bar").style.display = "block";
+
+        var script_unity = document.createElement("script");
+        script_unity.src = loaderUrl;
+        script_unity.onload = () => {
+            createUnityInstance(canvas_unity_element, config, (progress) => { // 변수명 사용
+                document.querySelector("#unity-progress-bar-full").style.width = 100 * progress + "%";
+            }).then((unityInstance) => {
+                window.unityGameInstance = unityInstance;
+                console.log("Unity Instance Loaded and assigned to window.unityGameInstance!");
+                loadAllFacialModels(); 
+
+                document.querySelector("#unity-loading-bar").style.display = "none";
+                if (document.querySelector("#unity-fullscreen-button")) {
+                    document.querySelector("#unity-fullscreen-button").onclick = () => {
+                        unityInstance.SetFullscreen(1);
+                    };
+                }
+            }).catch((message) => {
+                alert(message);
+            });
+        };
+        document.body.appendChild(script_unity);
+
+        // ==================================================
+        // 👇 얼굴 평가 관련 JavaScript 로직 👇
+        // ==================================================
+
+        let currentActiveFacialMode = null;
+        let faceApiModelLoaded_Emotion = false;
+
+        const emotionModeUI = document.getElementById('emotion-mode-ui');
+        const emotionReferenceImg = document.getElementById('emotion-referenceImg');
+        const emotionVideo = document.getElementById('emotion-video');
+        const emotionScoreDisplay = document.getElementById('emotion-scoreDisplay');
+        const emotionRefEmotionDisplay = document.getElementById('emotion-refEmotionDisplay');
+        const emotionUserEmotionDisplay = document.getElementById('emotion-userEmotionDisplay');
+        const emotionCaptureBtn = document.getElementById('emotion-captureBtn');
+        const emotionGuideCanvas = document.getElementById('emotion-guideCanvas');
+
+        const emotionImageCount = 50;
+        const emotionImageIndices = Array.from({ length: emotionImageCount }, (_, i) => i + 1);
+        let currentEmotionReferenceImageNumber = 0;
+
+        async function loadEmotionModels() {
+            if (faceApiModelLoaded_Emotion) {
+                console.log("Emotion models already loaded.");
+                return true; 
+            }
+            if (typeof faceapi === 'undefined') {
+                console.error("face-api.js is not loaded yet!");
+                alert("얼굴 인식 라이브러리 로딩 중입니다. 잠시 후 다시 시도해주세요.");
+                return false;
+            }
+            try {
+                console.log("Loading face-api.js models for emotion mode...");
+                const modelPath = '/models';
+                await faceapi.nets.tinyFaceDetector.loadFromUri(modelPath);
+                await faceapi.nets.faceExpressionNet.loadFromUri(modelPath);
+                await faceapi.nets.faceLandmark68Net.loadFromUri(modelPath);
+                faceApiModelLoaded_Emotion = true;
+                console.log("Emotion mode (face-api.js) models loaded successfully from:", modelPath);
+                return true;
+            } catch (error) {
+                console.error("Error loading face-api.js models from path '" + modelPath + "':", error);
+                alert("얼굴 인식 모델(감정) 로딩에 실패했습니다. 모델 경로 및 인터넷 연결을 확인해주세요.");
+                return false;
+            }
+        }
+
+        async function startVideoForEmotionMode() {
+            if (emotionVideo.srcObject && emotionVideo.srcObject.active) {
+                console.log("Webcam for emotion mode is already active.");
+                if (emotionVideo.paused) {
+                    emotionVideo.play().catch(e => console.error("Error restarting paused video:", e));
+                }
+                return true;
+            }
+            try {
+                console.log("Requesting webcam for emotion mode...");
+                const stream = await navigator.mediaDevices.getUserMedia({ video: {} });
+                console.log("Webcam stream obtained:", stream);
+
+                if (stream.getTracks().length > 0) {
+                    console.log("Webcam stream has tracks:", stream.getTracks());
+                } else {
+                    console.warn("Webcam stream has NO tracks. This might be an issue.");
+                }
+
+                emotionVideo.srcObject = stream;
+
+                emotionVideo.play().then(() => {
+                    console.log("emotionVideo.play() initiated successfully via promise.");
+                }).catch(err => {
+                    console.error("emotionVideo.play() promise failed:", err);
+                });
+
+                return new Promise((resolve) => {
+                    emotionVideo.onloadedmetadata = () => {
+                        console.log("emotionVideo metadata loaded. Client dimensions:", emotionVideo.clientWidth, "x", emotionVideo.clientHeight);
+                        if (emotionVideo.clientWidth > 0 && emotionVideo.clientHeight > 0) {
+                            // 가이드 캔버스 관련 로직은 ShowFacialRecognitionUI_JS에서 display 여부를 결정하므로
+                            // 여기서는 그리기만 담당 (단, 캔버스가 display:block 상태여야 의미 있음)
+                            if (emotionGuideCanvas && emotionGuideCanvas.style.display !== 'none') { 
+                                emotionGuideCanvas.width = emotionVideo.clientWidth;
+                                emotionGuideCanvas.height = emotionVideo.clientHeight;
+                                drawGuideEllipseForEmotion(); 
+                            }
+                            console.log("Webcam for emotion mode started (guide drawn if canvas visible).");
+                            resolve(true);
+                        } else {
+                            setTimeout(() => {
+                                console.log("Retrying to get video dimensions. Client dimensions:", emotionVideo.clientWidth, "x", emotionVideo.clientHeight);
+                                if (emotionVideo.clientWidth > 0 && emotionVideo.clientHeight > 0) {
+                                    if (emotionGuideCanvas && emotionGuideCanvas.style.display !== 'none') {
+                                        emotionGuideCanvas.width = emotionVideo.clientWidth;
+                                        emotionGuideCanvas.height = emotionVideo.clientHeight;
+                                        drawGuideEllipseForEmotion(); 
+                                    }
+                                    console.log("Webcam for emotion mode started (after delay, guide drawn if canvas visible).");
+                                    resolve(true);
+                                } else {
+                                    console.error("Emotion video dimensions are still zero after delay.");
+                                    alert("웹캠 화면 크기를 가져올 수 없습니다. 페이지를 새로고침하거나 카메라 설정을 확인해주세요.");
+                                    resolve(false);
+                                }
+                            }, 300); 
+                        }
+                    };
+                    emotionVideo.onerror = (e) => { 
+                        console.error("Error event on video element:", e);
+                        alert("웹캠 비디오 요소에서 오류가 발생했습니다. 콘솔을 확인해주세요.");
+                        resolve(false);
+                    }
+                });
+            } catch (err) {
+                console.error("Error accessing webcam for emotion mode (getUserMedia failed):", err);
+                let alertMessage = "웹캠(감정)을 시작할 수 없습니다. 카메라가 연결되어 있는지 확인해주세요.";
+                if (err.name === "NotAllowedError") {
+                    alertMessage = "웹캠(감정) 사용 권한이 거부되었습니다. 브라우저 또는 아이패드 설정에서 카메라 권한을 확인해주세요.";
+                } else if (err.name === "NotFoundError") {
+                    alertMessage = "사용 가능한 카메라를 찾을 수 없습니다. 아이패드에 카메라가 제대로 작동하는지 확인해주세요.";
+                } else if (err.name === "NotReadableError") {
+                    alertMessage = "카메라를 현재 사용할 수 없습니다. 다른 앱이 사용 중이거나, 일시적인 하드웨어 문제일 수 있습니다. 아이패드를 재시동해보세요.";
+                } else if (err.name === "OverconstrainedError") {
+                    alertMessage = "요청한 조건으로 카메라를 시작할 수 없습니다. (개발자 확인 필요)";
+                } else if (err.name === "SecurityError") {
+                     alertMessage = "카메라 접근이 보안상의 이유로 차단되었습니다. 웹사이트가 HTTPS로 접속되었는지 확인해주세요.";
+                } else {
+                    alertMessage += ` (에러명: ${err.name})`;
+                }
+                alert(alertMessage);
+                return false;
+            }
+        }
+
+        function drawGuideEllipseForEmotion() {
+            if (!emotionGuideCanvas || !emotionVideo.srcObject || emotionVideo.clientWidth === 0 || emotionGuideCanvas.style.display === 'none') return; 
+            const ctx = emotionGuideCanvas.getContext("2d");
+            ctx.clearRect(0, 0, emotionGuideCanvas.width, emotionGuideCanvas.height);
+            ctx.strokeStyle = "rgba(0, 255, 0, 0.6)";
+            ctx.lineWidth = 3;
+            ctx.beginPath();
+            ctx.ellipse(emotionVideo.clientWidth / 2, emotionVideo.clientHeight / 2,
+                        emotionVideo.clientWidth * 0.25, emotionVideo.clientHeight * 0.38, 0, 0, 2 * Math.PI);
+            ctx.stroke();
+        }
+
+        async function setupSingleEmotionExercise() {
+            console.log("Setting up single emotion exercise...");
+            currentEmotionReferenceImageNumber = emotionImageIndices[Math.floor(Math.random() * emotionImageIndices.length)];
+
+            const imageUrl = `/static/images/e_game/e${currentEmotionReferenceImageNumber}.png`; 
+            emotionReferenceImg.src = imageUrl;
+            console.log("Attempting to load reference image:", emotionReferenceImg.src);
+
+            emotionRefEmotionDisplay.innerHTML = `기준 감정: - (이미지 분석중...)`;
+            emotionUserEmotionDisplay.innerHTML = `당신 감정: -`;
+            emotionScoreDisplay.innerHTML = `점수: -`;
+
+            try {
+                await waitForImageLoadForModal(emotionReferenceImg);
+                console.log("Reference image for emotion loaded successfully:", emotionReferenceImg.src);
+
+                const refResult = await tryRecognizeReferenceEmotionForModal(true); 
+                if (refResult && refResult.expressions) {
+                    const refEmotion = getTopEmotion(refResult.expressions);
+                    emotionRefEmotionDisplay.innerHTML = `기준 감정: <b>${refEmotion}</b>`;
+                    console.log("Reference emotion recognized:", refEmotion);
+                } else {
+                    emotionRefEmotionDisplay.innerHTML = `기준 감정: (분석 실패)`;
+                    console.warn("Failed to recognize reference emotion (refResult or expressions null).");
+                }
+            } catch (error) {
+                console.error("Failed to load or process reference image in setupSingleEmotionExercise:", error);
+                emotionRefEmotionDisplay.innerHTML = `기준 감정: (이미지 오류)`;
+            }
+        }
+
+        // ... (cosineSimilarity, waitForImageLoadForModal, tryRecognizeReferenceEmotionForModal, getTopEmotion, processEmotionExpression - 변경 없음) ...
+        function cosineSimilarity(a, b) {
+            const dot = a.reduce((sum, val, i) => sum + val * b[i], 0);
+            const magA = Math.sqrt(a.reduce((sum, val) => sum + val * val, 0));
+            const magB = Math.sqrt(b.reduce((sum, val) => sum + val * val, 0));
+            if (magA === 0 || magB === 0) return 0;
+            return dot / (magA * magB);
+        }
+
+        function waitForImageLoadForModal(imgElement) {
+            return new Promise((resolve, reject) => {
+                if (imgElement.complete && imgElement.naturalHeight !== 0) {
+                    resolve();
+                } else {
+                    imgElement.onload = () => resolve();
+                    imgElement.onerror = () => {
+                        console.error("waitForImageLoadForModal: Image load failed for", imgElement.src);
+                        reject(new Error("이미지 로드 실패: " + imgElement.src));
+                    };
+                }
+            });
+        }
+
+        async function tryRecognizeReferenceEmotionForModal(isSetup = false, maxAttempts = 1) {
+            if (!faceApiModelLoaded_Emotion) { console.error("Emotion models not loaded for ref check."); return null;}
+            for (let attempt = 0; attempt < maxAttempts; attempt++) {
+                try {
+                    await waitForImageLoadForModal(emotionReferenceImg); 
+                    const refResult = await faceapi
+                        .detectSingleFace(emotionReferenceImg, new faceapi.TinyFaceDetectorOptions())
+                        .withFaceLandmarks()
+                        .withFaceExpressions();
+                    if (refResult && refResult.expressions) {
+                        return refResult;
+                    }
+                } catch (error) {
+                    console.error(`Error in tryRecognizeReferenceEmotionForModal (attempt ${attempt + 1}):`, error);
+                }
+            }
+            console.warn("Failed to detect reference emotion after all attempts.");
+            return null;
+        }
+
+        const getTopEmotion = exp => Object.entries(exp).sort((a, b) => b[1] - a[1])[0][0];
+
+async function processEmotionExpression() {
+                console.log("processEmotionExpression: Function started."); // 함수 시작 로그
+
+                if (!faceApiModelLoaded_Emotion) {
+                        alert("얼굴 인식 모델이 로드되지 않았습니다.");
+                        if(emotionCaptureBtn) emotionCaptureBtn.disabled = false;
+                        console.warn("processEmotionExpression: Models not loaded."); // 모델 미로드 로그
+                        return;
+                }
+                if (!emotionVideo.srcObject || emotionVideo.paused || emotionVideo.ended || emotionVideo.readyState < 3) { 
+                        alert("웹캠이 준비되지 않았거나 영상 데이터가 충분하지 않습니다.");
+                        if(emotionCaptureBtn) emotionCaptureBtn.disabled = false;
+                        console.warn("processEmotionExpression: Webcam not ready."); // 웹캠 미준비 로그
+                        return;
+                }
+
+                if(emotionCaptureBtn) emotionCaptureBtn.disabled = true;
+                emotionScoreDisplay.innerHTML = `점수: 분석 중...`;
+                console.log("processEmotionExpression: Score display set to '분석 중...'");
+
+                let userDetections;
+                try {
+                        console.log("processEmotionExpression: Attempting to detect user face...");
+                        userDetections = await faceapi.detectSingleFace(emotionVideo, new faceapi.TinyFaceDetectorOptions()).withFaceLandmarks().withFaceExpressions();
+                } catch (error) {
+                        console.error("processEmotionExpression: Error during user face detection:", error);
+                        alert("❌ 사용자 얼굴 인식 중 오류 발생! 콘솔을 확인해주세요.");
+                        emotionUserEmotionDisplay.innerHTML = `당신 감정: (오류)`;
+                        sendScoreToUnityAndHideModal(0); // 오류 시 0점 처리 및 모달 닫기
+                        return;
+                }
+                
+                if (!userDetections || !userDetections.expressions) {
+                        alert("❌ 사용자 얼굴 표정을 인식하지 못했습니다.");
+                        emotionUserEmotionDisplay.innerHTML = `당신 감정: (인식 실패)`;
+                        console.warn("processEmotionExpression: User face detection failed.");
+                        sendScoreToUnityAndHideModal(0);
+                        return;
+                }
+                const userEmotion = getTopEmotion(userDetections.expressions);
+                emotionUserEmotionDisplay.innerHTML = `당신 감정: <b>${userEmotion}</b>`;
+                console.log("processEmotionExpression: User emotion detected:", userEmotion);
+
+                let refResult;
+                try {
+                        console.log("processEmotionExpression: Attempting to recognize reference emotion...");
+                        refResult = await tryRecognizeReferenceEmotionForModal(false, 1);
+                } catch (error) {
+                        console.error("processEmotionExpression: Error during reference emotion recognition:", error);
+                        alert("❌ 기준 이미지 인식 중 오류 발생! 콘솔을 확인해주세요.");
+                        emotionRefEmotionDisplay.innerHTML = `기준 감정: (오류)`;
+                        sendScoreToUnityAndHideModal(0); // 오류 시 0점 처리 및 모달 닫기
+                        return;
+                }
+
+                if (!refResult || !refResult.expressions) {
+                        alert("❌ 기준 이미지의 감정을 인식 실패했습니다.");
+                        emotionRefEmotionDisplay.innerHTML = `기준 감정: (인식 실패)`;
+                        console.warn("processEmotionExpression: Reference emotion recognition failed.");
+                        sendScoreToUnityAndHideModal(0);
+                        return;
+                }
+                const refEmotion = getTopEmotion(refResult.expressions);
+                emotionRefEmotionDisplay.innerHTML = `기준 감정: <b>${refEmotion}</b>`;
+                console.log("processEmotionExpression: Reference emotion recognized:", refEmotion);
+
+                const refVec = Object.values(refResult.expressions);
+                const userVec = Object.values(userDetections.expressions);
+                const sim = cosineSimilarity(refVec, userVec);
+                const calculatedScore = Math.max(0, Math.min(10, Math.round(sim * 10)));
+                console.log("processEmotionExpression: Similarity:", sim, "Calculated score:", calculatedScore);
+
+                emotionScoreDisplay.innerHTML = `획득 점수: <b>${calculatedScore} / 10</b>`;
+                console.log("processEmotionExpression: Score display updated to:", calculatedScore);
+                
+                sendScoreToUnityAndHideModal(calculatedScore);
+                console.log("processEmotionExpression: Called sendScoreToUnityAndHideModal. Function finished.");
+        }
+
+        // ==================================================
+        // 👇 ShowFacialRecognitionUI_JS 함수: 테스트를 위해 수정합니다.
+        // ==================================================
+        async function ShowFacialRecognitionUI_JS(mode) {
+            console.log("ShowFacialRecognitionUI_JS called from Unity with mode:", mode);
+            currentActiveFacialMode = mode;
+            const modal = document.getElementById('facial-recognition-modal');
+            const emotionUI = document.getElementById('emotion-mode-ui');
+
+            if (!modal || !emotionUI) { console.error("Modal or UI elements not found!"); return; }
+
+            if (mode === 'emotion_expression') {
+                emotionUI.style.display = 'block';
+                modal.style.display = 'flex';
+
+                if (!faceApiModelLoaded_Emotion) {
+                    const modelsLoaded = await loadEmotionModels();
+                    if (!modelsLoaded) {
+                        closeFacialModal();
+                        return;
+                    }
+                }
+                const videoStarted = await startVideoForEmotionMode();
+                if (!videoStarted) { 
+                    closeFacialModal();
+                    return;
+                }
+
+                // ▼▼▼▼▼ 테스트 1: 가이드 캔버스만 숨기고, 나머지는 그대로 실행 (또는 지연) ▼▼▼▼▼
+                console.log("Test 1: Hiding guide canvas. Other setups will proceed (possibly delayed).");
+
+                if (emotionGuideCanvas) {
+                    emotionGuideCanvas.style.display = 'none'; // 가이드 캔버스 강제 숨김
+                    console.log("emotionGuideCanvas display set to none for Test 1.");
+                }
+
+                // setupSingleEmotionExercise와 버튼 설정은 원래대로 (또는 이전 테스트처럼 setTimeout으로 지연)
+                // 여기서는 일단 원래대로 복원된 코드를 기준으로 canvas만 숨긴다고 가정합니다.
+                // 만약 이전 단계에서 setTimeout으로 지연시켰던 코드가 이 안에 있다면 그 상태를 유지합니다.
+                // 이 코드는 이전 답변에서 setTimeout 부분을 제거하고 원래대로 복원한 것을 기준으로 합니다.
+
+                await setupSingleEmotionExercise(); 
+                console.log("Finished setupSingleEmotionExercise call (Test 1).");
+
+                if(emotionCaptureBtn) { 
+                    emotionCaptureBtn.disabled = false; 
+                    emotionCaptureBtn.removeEventListener('click', processEmotionExpression);
+                    emotionCaptureBtn.addEventListener('click', processEmotionExpression);
+                    console.log("emotionCaptureBtn setup re-enabled (Test 1).");
+                }
+                // ▲▲▲▲▲ 테스트 1 끝 ▲▲▲▲▲
+
+            } else if (mode === 'follow_expression') {
+                emotionUI.style.display = 'none';
+                alert("'표정 따라하기 모드'는 아직 연결되지 않았습니다.");
+                closeFacialModal();
+            } else {
+                console.error("Unknown facial exercise mode:", mode);
+                closeFacialModal();
+            }
+        }
+        // ==================================================
+        // 👆 ShowFacialRecognitionUI_JS 함수 수정 끝 👆
+        // ==================================================
+
+
+        function closeFacialModal() {
+            console.log("Closing facial modal for mode:", currentActiveFacialMode);
+            const modal = document.getElementById('facial-recognition-modal');
+            if (modal) {
+                modal.style.display = 'none';
+            }
+
+            if (currentActiveFacialMode === 'emotion_expression' && emotionVideo.srcObject) {
+                emotionVideo.srcObject.getTracks().forEach(track => track.stop());
+                emotionVideo.srcObject = null; 
+                console.log("Emotion mode webcam stopped.");
+                const uiToHide = document.getElementById('emotion-mode-ui');
+                if(uiToHide) uiToHide.style.display = 'none';
+            }
+            // 모달이 닫힐 때 가이드 캔버스를 명시적으로 다시 보이게 할 필요는 없습니다.
+            // 어차피 모달 자체가 display: none이 되기 때문입니다.
+            // ShowFacialRecognitionUI_JS에서 모달이 열릴 때 display:block으로 설정합니다.
+            // if (emotionGuideCanvas) {
+            //      emotionGuideCanvas.style.display = 'block'; 
+            // }
+            currentActiveFacialMode = null;
+        }
+
+        function sendScoreToUnityAndHideModal(score) {
+            if (window.unityGameInstance) {
+                window.unityGameInstance.SendMessage('CostManagerObject', 'ReceiveFacialScore', score);
+                console.log("Score (" + score + ") sent to Unity.");
+            } else {
+                console.warn("Unity instance (window.unityGameInstance) not found.");
+            }
+
+            setTimeout(() => {
+                closeFacialModal();
+            }, 2000);
+        }
+
+        async function loadAllFacialModels() {
+            await loadEmotionModels();
+        }
+
+        window.addEventListener('DOMContentLoaded', () => {
+            console.log("DOM fully loaded. Call loadAllFacialModels() if needed or wait for Unity to load.");
+        });
+    </script>
+</body>
+</html>

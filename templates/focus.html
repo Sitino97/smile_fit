@@ -1,0 +1,146 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <title>집중운동 선택 | SMILE FIT</title>
+  <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@500&family=SUIT:wght@400;600&display=swap" rel="stylesheet">
+  <style>
+    body {
+      opacity: 0;
+      transition: opacity 0.4s ease;
+      margin: 0;
+      padding: 0;
+      font-family: 'SUIT', sans-serif;
+      text-align: center;
+      background-color: #ffffff;
+    }
+
+    body.loaded {
+      opacity: 1;
+    }
+
+    body.fade-out {
+      opacity: 0;
+    }
+
+    header {
+      font-family: 'Orbitron', sans-serif;
+      background: linear-gradient(90deg, #69b7ff, #a17fff);
+      padding: 30px;
+      font-size: 28px;
+      font-weight: bold;
+      color: white;
+      box-shadow: 0 4px 10px rgba(0, 0, 0, 0.2);
+    }
+
+    .home-button {
+      position: fixed;
+      top: 20px;
+      left: 20px;
+      z-index: 999;
+      padding: 10px 20px;
+      background: #ff4081;
+      color: white;
+      text-decoration: none;
+      border-radius: 8px;
+      font-weight: bold;
+      box-shadow: 0 0 10px #ff4081;
+    }
+
+    .home-button:hover {
+      background: #e91e63;
+      box-shadow: 0 0 15px #ff4081;
+    }
+
+    h1 {
+      font-size: 32px;
+      margin: 50px 0;
+    }
+
+    .exercise-grid {
+      display: flex;
+      justify-content: center;
+      flex-wrap: wrap;
+      gap: 30px;
+      padding: 40px 20px 60px;
+    }
+
+    .exercise-card {
+      background: linear-gradient(90deg, #e9f5ff, #ebe4ff);
+      border-radius: 12px;
+      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+      padding: 20px 20px;
+      width: 240px;
+      cursor: pointer;
+      transition: transform 0.2s ease, box-shadow 0.2s ease;
+    }
+
+    .exercise-card:hover {
+      transform: translateY(-5px);
+      box-shadow: 0 6px 16px rgba(0, 0, 0, 0.15);
+    }
+
+    .exercise-card h3 {
+      font-size: 20px;
+      color: #1976D2;
+      margin-bottom: 10px;
+    }
+
+    .exercise-card p {
+      font-size: 14px;
+      color: #666;
+    }
+
+    @media (max-width: 600px) {
+      .exercise-grid {
+        flex-direction: column;
+        align-items: center;
+      }
+
+      .exercise-card {
+        width: 80%;
+      }
+    }
+  </style>
+</head>
+<body>
+
+  <header>SMILE FIT</header>
+
+  <a href="{{ url_for('index') }}" class="home-button" onclick="delayedNav('{{ url_for('index') }}'); return false;">HOME</a>
+
+  <h1>운동할 부위를 선택해주세요</h1>
+
+  <div class="exercise-grid">
+    <div class="exercise-card" onclick="delayedNav('focus_fit?exercise=mouth_open')">
+      <h3>🗣️ 입 벌리기</h3>
+      <p>입을 정확하게 벌리는 연습으로<br>턱 주변 근육을 강화합니다.</p>
+    </div>
+
+    <div class="exercise-card" onclick="delayedNav('/focus_fit?exercise=smile')">
+      <h3>😊 웃음 짓기</h3>
+      <p>입꼬리를 올리는 표정을 통해<br>긍정적인 근육 자극을 유도합니다.</p>
+    </div>
+
+    <div class="exercise-card" onclick="delayedNav('focus_fit?exercise=frown')">
+      <h3>😠 찡그리기</h3>
+      <p>미간과 이마 근육의 움직임을<br>점검하고 자극합니다.</p>
+    </div>
+  </div>
+
+  <script>
+    window.addEventListener('DOMContentLoaded', () => {
+      document.body.classList.add('loaded');
+    });
+
+    function delayedNav(url) {
+      document.body.classList.remove('loaded');
+      document.body.classList.add('fade-out');
+      setTimeout(() => {
+        window.location.href = url;
+      }, 400);
+    }
+  </script>
+
+</body>
+</html>

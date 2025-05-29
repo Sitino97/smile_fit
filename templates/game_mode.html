@@ -1,0 +1,168 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <title>게임 모드 선택 | SMILE FIT</title>
+  <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@500&family=SUIT:wght@400;600&display=swap" rel="stylesheet">
+  <style>
+    /* 💡 페이드인 기본 세팅 */
+    body {
+      opacity: 0;
+      transition: opacity 0.8s ease;
+      margin: 0;
+      font-family: 'SUIT', sans-serif;
+      background: radial-gradient(ellipse at center, #0f2027, #203a43, #2c5364);
+      color: #00ffe1;
+      text-align: center;
+    }
+
+    body.loaded {
+      opacity: 1;
+    }
+    
+    body.fade-out {
+      opacity: 0;
+    }
+
+    header {
+      font-family: 'Orbitron', sans-serif;
+      background: rgba(0, 0, 0, 0.5);
+      padding: 30px;
+      font-size: 28px;
+      font-weight: bold;
+      color: #00ffe1;
+      box-shadow: 0 0 20px #00ffe1;
+    }
+
+    h2 {
+      font-size: 22px;
+      margin-top: 60px;
+      margin-bottom: 40px;
+      text-shadow: 0 0 10px #00ffe1;
+    }
+
+    .mode-container {
+      display: flex;
+      justify-content: center;
+      gap: 50px;
+      flex-wrap: wrap;
+      margin-bottom: 60px;
+    }
+
+    .mode-box {
+      width: 300px;
+      padding: 30px;
+      background: rgba(0, 0, 0, 0.3);
+      border: 2px solid #00ffe1;
+      border-radius: 16px;
+      box-shadow: 0 0 10px #00ffe1, 0 0 30px #00ffe1 inset;
+      transition: all 0.3s ease;
+    }
+
+    .mode-box:hover {
+      transform: scale(1.05);
+      box-shadow: 0 0 20px #00ffe1, 0 0 40px #00ffe1 inset;
+    }
+
+    .mode-title {
+      font-size: 20px;
+      margin-bottom: 12px;
+      color: #00ffe1;
+      text-shadow: 0 0 10px #00ffe1;
+    }
+
+    .mode-desc {
+      font-size: 14px;
+      color: #ffffff;
+      margin-bottom: 20px;
+      text-shadow: 0 0 5px #00ffe1;
+    }
+
+    .mode-btn {
+      padding: 12px 28px;
+      font-size: 16px;
+      background: transparent;
+      color: #00ffe1;
+      border: 2px solid #00ffe1;
+      border-radius: 10px;
+      cursor: pointer;
+      box-shadow: 0 0 10px #00ffe1;
+      transition: all 0.3s ease;
+    }
+
+    .mode-btn:hover {
+      background-color: #00ffe133;
+      box-shadow: 0 0 15px #00ffe1;
+      transform: scale(1.05);
+    }
+
+    .home-button {
+      position: fixed;
+      top: 20px;
+      left: 20px;
+      z-index: 999;
+      padding: 10px 20px;
+      background: #ff4081;
+      color: white;
+      text-decoration: none;
+      border-radius: 8px;
+      font-weight: bold;
+      box-shadow: 0 0 10px #ff4081;
+    }
+
+    .home-button:hover {
+      background: #e91e63;
+      box-shadow: 0 0 15px #ff4081;
+    }
+
+    @media (max-width: 600px) {
+      .mode-container {
+        flex-direction: column;
+        gap: 30px;
+      }
+
+      .mode-box {
+        width: 80%;
+        margin: auto;
+      }
+    }
+  </style>
+</head>
+<body>
+
+  <header>SMILE FIT</header>
+
+  <a href="{{ url_for('index') }}" class="home-button">HOME</a>
+
+  <h2>게임 모드를 선택하세요</h2>
+
+  <div class="mode-container">
+    <div class="mode-box">
+      <div class="mode-title">표정 따라하기 모드</div>
+      <div class="mode-desc">기준 이미지를 보고 똑같이 따라하며 점수를 받아요.</div>
+      <button class="mode-btn" onclick="delayedNav('{{ url_for('game_follow') }}')">시작하기</button>
+    </div>
+    <div class="mode-box">
+      <div class="mode-title">감정 표현하기 모드</div>
+      <div class="mode-desc">감정 키워드에 맞게 표정을 지어보고 평가받아요.</div>
+      <button class="mode-btn" onclick="delayedNav('{{ url_for('game_emotion') }}')">시작하기</button>
+    </div>
+  </div>
+
+  <!-- 🎬 페이드인 스크립트 -->
+  <script>
+    window.addEventListener('DOMContentLoaded', () => {
+      document.body.classList.add('loaded');
+    });
+    
+    function delayedNav(url) {
+      document.body.classList.remove('loaded');
+      document.body.classList.add('fade-out');
+      setTimeout(() => {
+        window.location.href = url;
+      }, 400);
+    }
+  </script>
+
+</body>
+</html>

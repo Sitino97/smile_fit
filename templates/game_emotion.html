@@ -1,0 +1,299 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <title>감정 표현하기 모드 | SMILE FIT</title>
+  <script defer src="https://cdn.jsdelivr.net/npm/face-api.js@0.22.2/dist/face-api.min.js"></script>
+  <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@500&display=swap" rel="stylesheet">
+  <style>
+    body {
+      opacity: 0;
+      transition: opacity 0.8s ease;
+      font-family: 'Orbitron', sans-serif;
+      background: radial-gradient(ellipse at center, #0f2027, #203a43, #2c5364);
+      color: #00ffe1;
+      text-align: center;
+      margin: 0;
+      padding: 40px;
+      overflow-x: hidden;
+    }
+
+    body.loaded {
+      opacity: 1;
+    }
+    
+    body.fade-out {
+      opacity: 0;
+    }
+
+    h2 {
+      font-size: 22px;
+      margin-bottom: 10px;
+      text-shadow: 0 0 10px #00ffe1;
+    }
+
+    #roundDisplay {
+      font-size: 20px;
+      color: #ffffff;
+      margin-bottom: 30px;
+      text-shadow: 0 0 6px #00ffe1;
+    }
+
+    .container {
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      margin-top: 40px;
+      gap: 30px;
+      flex-wrap: wrap;
+    }
+
+    img, video, canvas {
+      width: 300px;
+      height: 225px;
+      border: 2px solid #00ffe1;
+      box-shadow: 0 0 10px #00ffe1;
+    }
+
+    video.input_video {
+      transform: scaleX(-1);
+    }
+
+    canvas#guideCanvas {
+      position: absolute;
+      left: 50%;
+      transform: translateX(-50%);
+      top: 0;
+      z-index: 10;
+      pointer-events: none;
+    }
+
+    #refEmotionDisplay,
+    #userEmotionDisplay,
+    #scoreDisplay {
+      font-size: 18px;
+      margin-top: 10px;
+      text-shadow: 0 0 5px #00ffe1;
+    }
+
+    button {
+      margin-top: 20px;
+      padding: 12px 24px;
+      font-size: 16px;
+      border: 2px solid #00ffe1;
+      background: transparent;
+      color: #00ffe1;
+      border-radius: 10px;
+      cursor: pointer;
+      box-shadow: 0 0 10px #00ffe1;
+      transition: all 0.3s ease;
+    }
+
+    button:hover {
+      background-color: #00ffe133;
+      box-shadow: 0 0 15px #00ffe1;
+      transform: scale(1.05);
+    }
+
+    .home-button {
+      position: fixed;
+      top: 20px;
+      left: 20px;
+      z-index: 999;
+      padding: 10px 20px;
+      background: #ff4081;
+      color: white;
+      text-decoration: none;
+      border-radius: 8px;
+      font-weight: bold;
+      box-shadow: 0 0 10px #ff4081;
+    }
+
+    .home-button:hover {
+      background: #e91e63;
+      box-shadow: 0 0 15px #ff4081;
+    }
+
+    @media (max-width: 700px) {
+      .container {
+        flex-direction: column;
+        gap: 20px;
+      }
+    }
+  </style>
+</head>
+<body>
+  <a href="{{ url_for('index') }}" class="home-button">HOME</a>
+
+  <h2>감정 표현하기 게임</h2>
+  <div id="roundDisplay">1 / 25 라운드</div>
+
+  <div class="container">
+    <div>
+      <img id="referenceImg" src="" alt="기준 감정 이미지">
+      <div id="refEmotionDisplay">기준 감정: -</div>
+    </div>
+    <div style="position: relative;">
+      <video id="video" class="input_video" autoplay muted playsinline></video>
+      <canvas id="guideCanvas" width="300" height="225"></canvas>
+      <div id="userEmotionDisplay">당신 감정: -</div>
+    </div>
+  </div>
+
+  <button id="captureBtn">📸 감정 표정 제출</button>
+  <div id="scoreDisplay">점수: -<br>총점: 0 / 250</div>
+
+  <script>
+
+    window.addEventListener('DOMContentLoaded', () => {
+      document.body.classList.add('loaded');
+    });
+    
+    function delayedNav(url) {
+      document.body.classList.remove('loaded');
+      document.body.classList.add('fade-out');
+      setTimeout(() => {
+        window.location.href = url;
+      }, 400);
+    }
+    
+    const TOTAL_ROUNDS = 25;
+    let currentRound = 0;
+    let totalScore = 0;
+
+    const referenceImg = document.getElementById('referenceImg');
+    const video = document.getElementById('video');
+    const scoreDisplay = document.getElementById('scoreDisplay');
+    const roundDisplay = document.getElementById('roundDisplay');
+
+    const allIndices = Array.from({ length: 50 }, (_, i) => i + 1);
+    const selectedIndices = allIndices.sort(() => Math.random() - 0.5).slice(0, 25);
+
+    function updateUI() {
+      const imgNum = selectedIndices[currentRound];
+      referenceImg.src = `static/images/e_game/e${imgNum}.png`;
+      roundDisplay.innerText = `${currentRound + 1} / ${TOTAL_ROUNDS} 라운드`;
+      scoreDisplay.innerHTML = `점수: <b>${score} / 10</b><br>총점: <b>${totalScore} / ${TOTAL_ROUNDS * 10}</b>`;
+    }
+
+    function drawGuideEllipse() {
+      const canvas = document.getElementById("guideCanvas");
+      const ctx = canvas.getContext("2d");
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
+      ctx.strokeStyle = "rgba(0, 255, 0, 0.6)";
+      ctx.lineWidth = 3;
+      ctx.beginPath();
+      ctx.ellipse(canvas.width / 2, canvas.height / 2, canvas.width * 0.25, canvas.height * 0.38, 0, 0, 2 * Math.PI);
+      ctx.stroke();
+    }
+
+    function cosineSimilarity(a, b) {
+      const dot = a.reduce((sum, val, i) => sum + val * b[i], 0);
+      const magA = Math.sqrt(a.reduce((sum, val) => sum + val * val, 0));
+      const magB = Math.sqrt(b.reduce((sum, val) => sum + val * val, 0));
+      return dot / (magA * magB);
+    }
+
+    async function startVideo() {
+      const stream = await navigator.mediaDevices.getUserMedia({ video: true });
+      video.srcObject = stream;
+      drawGuideEllipse();
+    }
+
+    async function tryRecognizeReferenceEmotion(maxAttempts = 3) {
+      for (let attempt = 0; attempt < maxAttempts; attempt++) {
+        try {
+          await waitForImageLoad(referenceImg);
+          const refResult = await faceapi
+            .detectSingleFace(referenceImg, new faceapi.TinyFaceDetectorOptions())
+            .withFaceExpressions();
+          if (refResult) return refResult;
+        } catch (_) {
+          // 로딩 실패 or 인식 실패: 아래에서 이미지 교체
+        }
+
+        // 실패했으면 다른 이미지 로드 시도
+        const unused = allIndices.filter(i => !selectedIndices.includes(i));
+        if (unused.length > 0) {
+          const newIdx = unused[Math.floor(Math.random() * unused.length)];
+          referenceImg.src = `static/images/e_game/e${newIdx}.png`;
+        } else {
+          console.warn("⚠ 더 이상 대체 이미지가 없습니다");
+          break;
+        }
+      }
+      return null;
+    }
+
+
+    function waitForImageLoad(imgElement) {
+      return new Promise((resolve, reject) => {
+        if (imgElement.complete && imgElement.naturalHeight !== 0) {
+          resolve();
+        } else {
+          imgElement.onload = () => resolve();
+          imgElement.onerror = () => reject(new Error("이미지 로드 실패"));
+        }
+      });
+    }
+
+
+    window.onload = async () => {
+      await faceapi.nets.tinyFaceDetector.loadFromUri('/models');
+      await faceapi.nets.faceExpressionNet.loadFromUri('/models');
+      startVideo();   // 캠 시작
+      updateUI();     // 1라운드 이미지 표시
+    };
+
+    document.getElementById("captureBtn").onclick = async () => {
+      const canvas = document.createElement("canvas");
+      canvas.width = 300;
+      canvas.height = 225;
+      const ctx = canvas.getContext("2d");
+      ctx.drawImage(video, 0, 0, 300, 225);
+
+      const userResult = await faceapi
+        .detectSingleFace(canvas, new faceapi.TinyFaceDetectorOptions())
+        .withFaceExpressions();
+      if (!userResult) {
+        alert("❌ 사용자 얼굴 인식 실패");
+        return;
+      }
+
+      const refResult = await tryRecognizeReferenceEmotion();
+      if (!refResult) {
+        alert("❌ 기준 이미지 감정 인식 3회 실패: 라운드 건너뜁니다");
+        currentRound++;
+        updateUI();
+        return;
+      }
+
+      const refVec = Object.values(refResult.expressions);
+      const userVec = Object.values(userResult.expressions);
+      const sim = cosineSimilarity(refVec, userVec);
+      const score = Math.max(3, Math.round(sim * 10));
+      totalScore += score;
+
+      const getTopEmotion = exp => Object.entries(exp).sort((a, b) => b[1] - a[1])[0][0];
+      const refEmotion = getTopEmotion(refResult.expressions);
+      const userEmotion = getTopEmotion(userResult.expressions);
+
+      document.getElementById("refEmotionDisplay").innerHTML = `기준 감정: <b>${refEmotion}</b>`;
+      document.getElementById("userEmotionDisplay").innerHTML = `당신 감정: <b>${userEmotion}</b>`;
+      scoreDisplay.innerHTML = `점수: <b>${score} / 10</b><br>총점: <b>${totalScore} / ${TOTAL_ROUNDS * 10}</b>`;
+
+      if (currentRound < TOTAL_ROUNDS - 1) {
+        currentRound++;
+        setTimeout(updateUI, 3000);
+      } else {
+        setTimeout(() => {
+          sessionStorage.setItem("totalScore", totalScore);
+          window.location.href = "game_feedback.html";
+        }, 3000);
+      }
+    };
+
+   
+  </script>
+</body>
+</html>

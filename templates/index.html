@@ -1,0 +1,213 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <title>홈 | 안면근육 재활</title>
+  <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@500&family=SUIT:wght@400;600&display=swap" rel="stylesheet">
+  <style>
+    body {
+      opacity: 0;
+      transition: opacity 0.4s ease;
+      margin: 0;
+      font-family: 'SUIT', sans-serif;
+      background-color: white;
+      color: #333;
+      text-align: center;
+    }
+
+    body.loaded {
+      opacity: 1;
+    }
+
+    body.fade-out {
+      opacity: 0;
+    }
+
+    header {
+      font-family: 'Orbitron', sans-serif;
+      background: linear-gradient(90deg, #69b7ff, #a17fff);
+      padding: 30px;
+      font-size: 28px;
+      font-weight: bold;
+      color: white;
+      box-shadow: 0 4px 10px rgba(0, 0, 0, 0.2);
+    }
+
+    .content {
+      margin-top: 60px;
+    }
+
+    h2 {
+      font-family: 'SUIT', sans-serif;
+      font-size: 26px;
+      font-weight: 600;
+      color: #222;
+      letter-spacing: 0.5px;
+      text-shadow: 0 2px 4px rgba(0,0,0,0.06);
+      margin-bottom: 50px;
+    }
+
+    .button-group {
+      display: flex;
+      justify-content: center;
+      gap: 60px;
+      flex-wrap: wrap;
+    }
+
+    .mode-box {
+      width: 250px;
+      background-size: cover;
+      background-position: center;
+      background-repeat: no-repeat;
+      border-radius: 16px;
+      box-shadow: 0 8px 24px rgba(0, 0, 0, 0.08);
+      padding: 20px;
+      color: white;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: space-between;
+      transition: transform 0.3s, box-shadow 0.3s;
+    }
+
+    .mode-box:hover {
+      transform: translateY(-6px);
+      box-shadow: 0 12px 28px rgba(0, 0, 0, 0.15);
+    }
+
+    .mode-box img {
+      width: 100%;
+      height: auto;
+      border-radius: 12px;
+      margin-bottom: 16px;
+      object-fit: cover;
+      box-shadow: 0 4px 10px rgba(0,0,0,0.2);
+    }
+
+    .mode-left {
+      background-image: linear-gradient(rgba(255,255,255,0.5), rgba(255,255,255,0.5)), url('static/images/space.png');
+    }
+
+    .mode-left button {
+      background-color: rgba(138, 43, 226, 0.85);
+      color: white;
+      border: none;
+      padding: 12px 24px;
+      font-size: 16px;
+      font-weight: 700;
+      border-radius: 8px;
+      cursor: pointer;
+      box-shadow: 0 4px 10px rgba(138, 43, 226, 0.5);
+      transition: background-color 0.3s, transform 0.2s;
+    }
+
+    .mode-left button:hover {
+      background-color: rgba(100, 30, 180, 0.9);
+      transform: scale(1.05);
+    }
+
+    .mode-right {
+      background-image: linear-gradient(rgba(255,255,255,0.5), rgba(255,255,255,0.5)), url('static/images/grass.png');
+    }
+
+    .mode-right button {
+      background-color: rgba(56, 142, 60, 0.9);
+      color: white;
+      border: none;
+      padding: 12px 24px;
+      font-size: 16px;
+      font-weight: 700;
+      border-radius: 8px;
+      cursor: pointer;
+      box-shadow: 0 4px 10px rgba(56, 142, 60, 0.5);
+      transition: background-color 0.3s, transform 0.2s;
+    }
+
+    .mode-right button:hover {
+      background-color: rgba(46, 125, 50, 1);
+      transform: scale(1.05);
+    }
+
+    .home-button {
+      position: fixed;
+      top: 20px;
+      left: 20px;
+      z-index: 999;
+      padding: 10px 20px;
+      background: #ff4081;
+      color: white;
+      text-decoration: none;
+      border-radius: 8px;
+      font-weight: bold;
+      box-shadow: 0 0 10px #ff4081;
+    }
+
+    .home-button:hover {
+      background: #e91e63;
+      box-shadow: 0 0 15px #ff4081;
+    }
+
+    @media (max-width: 600px) {
+      .button-group {
+        flex-direction: column;
+        gap: 40px;
+      }
+
+      .mode-box {
+        width: 80%;
+        margin: auto;
+      }
+    }
+  </style>
+</head>
+<body>
+
+  <audio id="metal_click" src="/static/sounds/metal_click.mp3"></audio>
+  <audio id="click_sound" src="/static/sounds/click_sound.wav"></audio>
+  <header>SMILE FIT</header>
+  
+  <div class="content">
+    <h2>원하는 모드를 선택하세요</h2>
+
+    <div class="button-group">
+      <div class="mode-box mode-left">
+        <img src="static/images/game.png" alt="게임 모드 이미지">
+        <button onclick="metalClickSound(); delayedNav('{{ url_for('game_mode') }}')">게임 모드</button>
+      </div>
+      <div class="mode-box mode-right">
+        <img src="static/images/rehab.png" alt="재활 모드 이미지">
+        <button onclick="ClickSound(); delayedNav('{{ url_for('rehab_mode') }}')">재활 모드</button>
+      </div>
+    </div>
+
+    <a href="{{ url_for('index') }}" class="home-button">HOME</a>
+  </div>
+
+  <script>
+    window.addEventListener('DOMContentLoaded', () => {
+      document.body.classList.add('loaded');
+    });
+
+    function delayedNav(url) {
+      document.body.classList.remove('loaded');
+      document.body.classList.add('fade-out');
+      setTimeout(() => {
+        window.location.href = url;
+      }, 400);
+    }
+
+    function metalClickSound() {
+      const sound = document.getElementById('metal_click');
+      sound.currentTime = 0;
+      sound.play();
+    }
+
+    function ClickSound() {
+      const sound = document.getElementById('click_sound');
+      sound.currentTime = 0;
+      sound.play();
+    }
+  </script>
+
+</body>
+</html>

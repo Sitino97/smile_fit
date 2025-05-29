@@ -1,0 +1,125 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <title>피드백 | SMILE FIT</title>
+  <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@500&family=SUIT:wght@400;600&display=swap" rel="stylesheet">
+  <style>
+    body {
+      margin: 0;
+      font-family: 'SUIT', sans-serif;
+      background-color: white;
+      color: #333;
+      text-align: center;
+      opacity: 0;
+      transition: opacity 0.4s ease;
+    }
+
+    body.loaded {
+      opacity: 1;
+    }
+
+    header {
+      font-family: 'Orbitron', sans-serif;
+      background: linear-gradient(90deg, #69b7ff, #a17fff);
+      padding: 30px;
+      font-size: 28px;
+      font-weight: bold;
+      color: white;
+      box-shadow: 0 4px 10px rgba(0, 0, 0, 0.2);
+    }
+
+    .content-wrapper {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 30px;
+      padding: 40px;
+    }
+
+    .image-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+      gap: 15px;
+      width: 100%;
+      max-width: 1000px;
+    }
+
+    .image-grid img {
+      width: 100%;
+      height: auto;
+      border: 2px solid #ccc;
+      border-radius: 8px;
+    }
+
+    .feedback-message {
+      font-size: 20px;
+      font-weight: bold;
+      color: #4CAF50;
+      margin-top: 10px;
+    }
+
+    .button-area {
+      display: flex;
+      gap: 20px;
+      justify-content: center;
+    }
+
+    .button-area button {
+      padding: 12px 20px;
+      font-size: 16px;
+      border: none;
+      border-radius: 6px;
+      cursor: pointer;
+      background-color: #2196F3;
+      color: white;
+      transition: background-color 0.3s ease;
+    }
+
+    .button-area button:hover {
+      background-color: #1976D2;
+    }
+  </style>
+</head>
+<body>
+  <header>SMILE FIT 결과</header>
+
+  <div class="content-wrapper">
+    <div class="image-grid" id="imageGrid"></div>
+
+    <div class="feedback-message" id="feedbackMsg">😊 결과가 성공적으로 저장되었습니다!</div>
+
+    <div class="button-area">
+      <button onclick="retry()">🔄 다시 시도하기</button>
+      <button onclick="goHome()">🏠 처음으로</button>
+    </div>
+  </div>
+
+  <script>
+    document.body.classList.add('loaded');
+
+    const images = JSON.parse(sessionStorage.getItem('capturedImages')) || [];
+    const imageGrid = document.getElementById('imageGrid');
+
+    images.forEach((src) => {
+      const img = document.createElement('img');
+      img.src = src;
+      imageGrid.appendChild(img);
+    });
+
+    // 단순 메시지 출력만 사용 (원하면 여기에 표정 분석 기반 피드백도 추가 가능)
+    const feedbackMsg = document.getElementById('feedbackMsg');
+    feedbackMsg.innerText = "😊 멋진 표정이에요! 계속 연습해보세요!";
+
+    function retry() {
+      sessionStorage.clear();
+      window.location.href = "/rehab_mode";  // 재활 모드 선택으로 이동
+    }
+
+    function goHome() {
+      sessionStorage.clear();
+      window.location.href = "/";  // index.html
+    }
+  </script>
+</body>
+</html>
