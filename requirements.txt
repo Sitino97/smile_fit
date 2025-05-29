@@ -1,3 +1,6 @@
-flask
-opencv-python-headless
+Flask
 gunicorn
+opencv-python
+mediapipe
+xgboost
+numpy
